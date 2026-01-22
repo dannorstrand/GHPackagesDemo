@@ -1,0 +1,82 @@
+name: POC - Config Consumer (Deploy)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to Fetch (e.g., dev, prod)'
+        required: true
+        default: 'dev'
+      version:
+        description: 'Version to Deploy (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  packages: read
+  contents: read
+
+jobs:
+  deploy-using-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Scripts
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Retrieve Configuration Package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Configure NuGet authentication for GitHub Packages
+          dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --name "GPR" \
+            --username "${{ github.actor }}" \
+            --password "$GITHUB_TOKEN" \
+            --store-password-in-clear-text
+
+          # 2. Create a temporary project to enable package installation
+          dotnet new classlib -n TempProject -o temp
+          cd temp
+
+          # 3. Install (Download & Extract) the Package using full URL
+          dotnet add package "MyOrg.Config.${{ inputs.environment }}" \
+            --version "${{ inputs.version }}" \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          
+          cd ..
+
+      - name: Display Package Contents
+        shell: pwsh
+        run: |
+          Write-Host "========================================="
+          Write-Host "  Package Contents - config.json"
+          Write-Host "========================================="
+          
+          # Locate the JSON file in the NuGet cache
+          $PackagePath = Join-Path $env:HOME ".nuget/packages/myorg.config.${{ inputs.environment }}/${{ inputs.version }}/content"
+          $JsonPath = Join-Path $PackagePath "config.json"
+          
+          if (-not (Test-Path $JsonPath)) {
+            Write-Host "Searching for config.json in NuGet cache..."
+            $JsonPath = Get-ChildItem -Path (Join-Path $env:HOME ".nuget/packages") -Filter "config.json" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          }
+          
+          if ($JsonPath) {
+            Write-Host "Found at: $JsonPath"
+            Write-Host ""
+            Get-Content $JsonPath
+            Write-Host ""
+            Write-Host "========================================="
+          } else {
+            Write-Error "Config file not found!"
+          }
+
+      - name: Parse and Apply Configuration
+        shell: pwsh
+        run: |
+          ./scripts/parse-config.ps1 -Environment "${{ inputs.environment }}" -Version "${{ inputs.version }}"

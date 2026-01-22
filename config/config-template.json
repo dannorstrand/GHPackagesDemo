@@ -1,0 +1,7 @@
+{
+  "Environment": "{{ENVIRONMENT}}",
+  "GeneratedAt": "{{GENERATED_AT}}",
+  "Database": "sql-{{ENVIRONMENT}}.local",
+  "Region": "eastus2",
+  "FeatureFlag": true
+}

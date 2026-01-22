@@ -1,0 +1,52 @@
+name: POC - Config Producer (Package)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment (e.g., dev, prod)'
+        required: true
+        default: 'dev'
+      version:
+        description: 'Package Version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (Optional if files are in repo)
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Generate Configuration JSON
+        shell: pwsh
+        run: |
+          ./scripts/generate-config.ps1 -Environment "${{ inputs.environment }}"
+
+      - name: Create Project File
+        shell: pwsh
+        run: |
+          ./scripts/create-project.ps1 -Environment "${{ inputs.environment }}" -Version "${{ inputs.version }}"
+
+      - name: Pack NuGet Package
+        run: dotnet pack config.csproj -o .
+
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Push the package using dotnet nuget push
+          dotnet nuget push *.nupkg \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --api-key "$GITHUB_TOKEN" \
+            --skip-duplicate
