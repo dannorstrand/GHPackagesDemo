@@ -1,0 +1,6 @@
+dev
+qa
+uat
+staging
+prod
+dr

@@ -1,11 +1,5 @@
 param(
     [Parameter(Mandatory=$true)]
-    [string]$Environment,
-    
-    [Parameter(Mandatory=$true)]
-    [string]$Region,
-    
-    [Parameter(Mandatory=$true)]
     [string]$Version
 )
 
@@ -14,10 +8,10 @@ $CsprojContent = @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <PackageId>MyOrg.Config.$Environment-$Region</PackageId>
+    <PackageId>MyOrg.Config.Multi</PackageId>
     <Version>$Version</Version>
     <Authors>DevOpsTeam</Authors>
-    <Description>Configuration settings for $Environment environment in $Region region.</Description>
+    <Description>Multi-environment and multi-region configuration package containing all environment-region combinations.</Description>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
   </PropertyGroup>
@@ -28,4 +22,4 @@ $CsprojContent = @"
 "@
 
 Set-Content -Path "config.csproj" -Value $CsprojContent
-Write-Host "Created config.csproj for environment: $Environment, region: $Region, version: $Version"
+Write-Host "Created config.csproj for multi-environment package, version: $Version"

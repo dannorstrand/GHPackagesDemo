@@ -3,12 +3,15 @@ param(
     [string]$Environment,
     
     [Parameter(Mandatory=$true)]
+    [string]$Region,
+    
+    [Parameter(Mandatory=$true)]
     [string]$Version
 )
 
 # Locate the JSON file in the NuGet cache
 # NuGet packages are stored in ~/.nuget/packages/packageid/version/
-$PackagePath = Join-Path $env:HOME ".nuget/packages/myorg.config.$Environment/$Version/content"
+$PackagePath = Join-Path $env:HOME ".nuget/packages/myorg.config.$Environment-$Region/$Version/content"
 $JsonPath = Join-Path $PackagePath "config.json"
 
 if (-not (Test-Path $JsonPath)) { 

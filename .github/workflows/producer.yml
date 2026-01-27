@@ -1,12 +1,8 @@
-name: POC - Config Producer (Package)
+name: POC - Config Producer (Multi-Environment Package)
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target Environment (e.g., dev, prod)'
-        required: true
-        default: 'dev'
       version:
         description: 'Package Version (e.g., 1.0.0)'
         required: true
@@ -20,7 +16,7 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (Optional if files are in repo)
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET
@@ -28,15 +24,15 @@ jobs:
         with:
           dotnet-version: '8.x'
 
-      - name: Generate Configuration JSON
+      - name: Generate Multi-Environment Configuration JSON
         shell: pwsh
         run: |
-          ./scripts/generate-config.ps1 -Environment "${{ inputs.environment }}"
+          ./scripts/generate-multi-config.ps1
 
       - name: Create Project File
         shell: pwsh
         run: |
-          ./scripts/create-project.ps1 -Environment "${{ inputs.environment }}" -Version "${{ inputs.version }}"
+          ./scripts/create-multi-project.ps1 -Version "${{ inputs.version }}"
 
       - name: Pack NuGet Package
         run: dotnet pack config.csproj -o .

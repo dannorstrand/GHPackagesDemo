@@ -1,0 +1,3 @@
+eastus1
+eastus2
+westus1

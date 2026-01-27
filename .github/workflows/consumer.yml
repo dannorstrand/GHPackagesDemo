@@ -4,9 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to Fetch (e.g., dev, prod)'
+        description: 'Environment to Fetch'
         required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+          - staging
+          - prod
+          - dr
         default: 'dev'
+      region:
+        description: 'Region to Fetch'
+        required: true
+        type: choice
+        options:
+          - eastus1
+          - eastus2
+          - westus1
+        default: 'eastus2'
       version:
         description: 'Version to Deploy (e.g., 1.0.0)'
         required: true
@@ -44,7 +61,7 @@ jobs:
           cd temp
 
           # 3. Install (Download & Extract) the Package using full URL
-          dotnet add package "MyOrg.Config.${{ inputs.environment }}" \
+          dotnet add package "MyOrg.Config.Multi" \
             --version "${{ inputs.version }}" \
             --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
           
@@ -58,7 +75,7 @@ jobs:
           Write-Host "========================================="
           
           # Locate the JSON file in the NuGet cache
-          $PackagePath = Join-Path $env:HOME ".nuget/packages/myorg.config.${{ inputs.environment }}/${{ inputs.version }}/content"
+          $PackagePath = Join-Path $env:HOME ".nuget/packages/myorg.config.multi/${{ inputs.version }}/content"
           $JsonPath = Join-Path $PackagePath "config.json"
           
           if (-not (Test-Path $JsonPath)) {
@@ -69,7 +86,17 @@ jobs:
           if ($JsonPath) {
             Write-Host "Found at: $JsonPath"
             Write-Host ""
-            Get-Content $JsonPath
+            
+            # Parse and display available configurations
+            $ConfigData = Get-Content $JsonPath | ConvertFrom-Json
+            Write-Host "Package Version: $($ConfigData.Version)"
+            Write-Host "Generated At: $($ConfigData.GeneratedAt)"
+            Write-Host "Available Configurations: $($ConfigData.Configurations.Count)"
+            Write-Host ""
+            Write-Host "Environment-Region Combinations:"
+            foreach ($config in $ConfigData.Configurations) {
+              Write-Host "  - $($config.Environment)-$($config.Region)"
+            }
             Write-Host ""
             Write-Host "========================================="
           } else {
@@ -79,4 +106,18 @@ jobs:
       - name: Parse and Apply Configuration
         shell: pwsh
         run: |
-          ./scripts/parse-config.ps1 -Environment "${{ inputs.environment }}" -Version "${{ inputs.version }}"
+          ./scripts/parse-multi-config.ps1 -Environment "${{ inputs.environment }}" -Region "${{ inputs.region }}" -Version "${{ inputs.version }}"
+
+      - name: Verify Environment Variables
+        shell: pwsh
+        run: |
+          Write-Host "========================================="
+          Write-Host "  Environment Variables Set from Config"
+          Write-Host "========================================="
+          Write-Host "TARGET_ENVIRONMENT: $env:TARGET_ENVIRONMENT"
+          Write-Host "TARGET_REGION: $env:TARGET_REGION"
+          Write-Host "DB_CONNECTION_STRING: $env:DB_CONNECTION_STRING"
+          Write-Host "API_ENDPOINT: $env:API_ENDPOINT"
+          Write-Host "========================================="
+          Write-Host ""
+          Write-Host "These environment variables can now be used in subsequent steps."
